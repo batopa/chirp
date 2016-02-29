@@ -1,0 +1,33 @@
+{
+    "name": "batopa/chirp",
+    "description": "Cache for Twitter using MongoDB",
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://github.com/batopa/chirp",
+    "keywords": [
+        "Twitter",
+        "MongoDB",
+        "cache",
+        "API"
+    ],
+    "authors": [
+        {
+            "name": "Alberto Pagliarini",
+            "homepage": "https://github.com/batopa"
+        }
+    ],
+    "require": {
+        "php": ">=5.4",
+        "ext-mongodb": "*",
+        "j7mbo/twitter-api-php": "^1.0",
+        "mongodb/mongodb": "^1.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "5.2.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Bato\\Chirp\\": "src/"
+        }
+    }
+}
