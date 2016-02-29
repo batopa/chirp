@@ -212,5 +212,4 @@ class Chirp
             'read'=> $result
         ];
     }
-
 }
