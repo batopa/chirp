@@ -17,7 +17,7 @@ class Chirp
     /**
      * The Database object
      *
-     * @var MongoDB\Database
+     * @var \MongoDB\Database
      */
     private $db = null;
 
@@ -46,12 +46,36 @@ class Chirp
      * Constructor
      * Initialize TwitterAPIExchange and MongoDB connection
      *
+     * $twitterAuthConf must contain
+     * - oauth_access_token
+     * - oauth_access_token_secret
+     * - consumer_key
+     * - consumer_secret
+     *
+     * $mongoConf must contain
+     *  - db: the name of mongo database to use
+     *
+     *  and can contain
+     * - uri
+     * - uriOptions
+     * - driverOptions
+     *
+     * used for MongoDB connection
+     *
+     * @see \TwitterAPIExchange for $twitterAuthConf
+     * @see \MongoDB\Client for $mongoConf
      * @param array $twitterAuthConf
      * @param array $mongoConf
      */
     public function __construct(array $twitterAuthConf, array $mongoConf = array())
     {
-        $client = new Client;
+        $mongoConf += [
+            'uri' => '',
+            'uriOptions' => [],
+            'driverOptions' => [],
+            'db' => ''
+        ];
+        $client = new Client($mongoConf['uri'], $mongoConf['uriOptions'], $mongoConf['driverOptions']);
         $this->db = $client->selectDatabase($mongoConf['db']);
         $this->authConf = $twitterAuthConf;
         $this->twitter = new TwitterAPIExchange($this->authConf);
@@ -71,7 +95,7 @@ class Chirp
     /**
      * Return the instance of MongoDB database
      *
-     * @return MongoDB\Database
+     * @return \MongoDB\Database
      */
     public function getDb()
     {
@@ -85,7 +109,7 @@ class Chirp
      * endpoint "statuses/user_timeline" corresponds to "statuses-user_timeline" collection
      *
      * @param string $endpoint [description]
-     * @return MongoDB\Collection
+     * @return \MongoDB\Collection
      */
     public function getCollection($endpoint)
     {
@@ -120,7 +144,7 @@ class Chirp
      * @param string $endpoint
      * @param array $filter
      * @param array $options
-     * @return cursor|array|MongoDB\BSONDocument (if findOne used)
+     * @return cursor|array|\MongoDB\BSONDocument (if findOne used)
      */
     public function read($endpoint, array $filter = [], array $options = [])
     {
