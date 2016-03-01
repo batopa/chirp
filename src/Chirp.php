@@ -1,5 +1,12 @@
 <?php
-
+/**
+ * This file is part of Chirp package
+ *
+ * Copyright (c) 2015 Alberto Pagliarini
+ *
+ * Licensed under the MIT license
+ * https://github.com/batopa/chirp/blob/master/LICENSE
+ */
 namespace Bato\Chirp;
 
 use MongoDB\Client;
@@ -183,6 +190,7 @@ class Chirp
 
         // use the API
         $result = $this->twitterRequest($endpoint, $options['query']);
+        $result = json_decode($result, true);
 
         $tweets = [];
         if (!empty($result)) {
