@@ -29,13 +29,6 @@ class Chirp
     private $db = null;
 
     /**
-     * Twitter auth configuration
-     *
-     * @var array
-     */
-    private $authConf = array();
-
-    /**
      * Twitter API base url
      *
      * @var string
@@ -76,16 +69,15 @@ class Chirp
      */
     public function __construct(array $twitterAuthConf, array $mongoConf = array())
     {
+        $this->twitter = new TwitterAPIExchange($twitterAuthConf);
         $mongoConf += [
-            'uri' => '',
+            'uri' => 'mongodb://localhost:27017',
             'uriOptions' => [],
             'driverOptions' => [],
             'db' => ''
         ];
         $client = new Client($mongoConf['uri'], $mongoConf['uriOptions'], $mongoConf['driverOptions']);
         $this->db = $client->selectDatabase($mongoConf['db']);
-        $this->authConf = $twitterAuthConf;
-        $this->twitter = new TwitterAPIExchange($this->authConf);
     }
 
     /**
@@ -111,7 +103,7 @@ class Chirp
 
     /**
      * Starting from twitter endpoint return the related collection
-     * It replaces "/" with "-", for example:
+     * It replaces "/" with "-" after removing trailing "/", for example:
      *
      * endpoint "statuses/user_timeline" corresponds to "statuses-user_timeline" collection
      *
@@ -120,7 +112,8 @@ class Chirp
      */
     public function getCollection($endpoint)
     {
-        $name = preg_replace('/\/+/', '-', $endpoint);
+        $name = trim($endpoint, '/');
+        $name = preg_replace('/\/+/', '-', $name);
         return $this->db->selectCollection($name);
     }
 
@@ -132,10 +125,10 @@ class Chirp
      * @param string $requestMethod the http request method
      * @return array
      */
-    public function twitterRequest($endpoint, $query = [], $requestMethod = 'GET')
+    public function twitterRequest($endpoint, $query = [], $requestMethod = 'get')
     {
         $url = $this->resourceUrl($endpoint);
-        $queryString = !empty($query) ? '?' . http_build_query($query) :  '';
+        $queryString = !empty($query) ? '?' . http_build_query($query) : '';
         $response = $this->twitter
             ->setGetfield($queryString)
             ->buildOauth($url, $requestMethod)
@@ -192,26 +185,28 @@ class Chirp
         $result = $this->twitterRequest($endpoint, $options['query']);
         $result = json_decode($result, true);
 
+        if (empty($result)) {
+            return ['saved' => [], 'read'=> []];
+        }
+
         $tweets = [];
-        if (!empty($result)) {
-            foreach ($result as $key => $tweet) {
-                if (!isset($tweet['text']) || !isset($tweet['id_str'])) {
-                    continue;
-                }
-                if ($options['require'] && empty($tweet[$options['require']])) {
-                    continue;
-                }
-                if ($options['grep'] && stristr($tweet['text'], $options['grep']) === false) {
-                    continue;
-                }
+        foreach ($result as $key => $tweet) {
+            if (!isset($tweet['text']) || !isset($tweet['id_str'])) {
+                continue;
+            }
+            if ($options['require'] && empty($tweet[$options['require']])) {
+                continue;
+            }
+            if ($options['grep'] && stristr($tweet['text'], $options['grep']) === false) {
+                continue;
+            }
 
-                $tweets[$key] = $tweet;
+            $tweets[$key] = $tweet;
 
-                $collection = $this->getCollection($endpoint);
-                $tweetInMongo = $collection->findOne(['id_str' => $tweet['id_str']]);
-                if (empty($tweetInMongo)) {
-                    $result = $collection->insertOne($tweet);
-                }
+            $collection = $this->getCollection($endpoint);
+            $tweetInMongo = $collection->findOne(['id_str' => $tweet['id_str']]);
+            if (empty($tweetInMongo)) {
+                $result = $collection->insertOne($tweet);
             }
         }
 
