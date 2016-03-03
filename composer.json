@@ -30,5 +30,10 @@
         "psr-4": {
             "Bato\\Chirp\\": "src/"
         }
+    },
+    "autoload-dev": {
+        "psr4": {
+            "Bato\\Chirp\\Test\\": "tests"
+        }
     }
 }
