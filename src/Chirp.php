@@ -141,10 +141,13 @@ class Chirp
      * Read results from a collection (default self::collection)
      * using $filter to filter results
      *
+     * If $options['limit'] = 1 return a \MongoDB\BSONDocument object
+     * else return an array or a cursor depending from $options['returnType']
+     *
      * @param string $endpoint
      * @param array $filter
      * @param array $options
-     * @return cursor|array|\MongoDB\BSONDocument (if findOne used)
+     * @return object|array
      */
     public function read($endpoint, array $filter = [], array $options = [])
     {
