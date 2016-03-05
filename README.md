@@ -1,6 +1,6 @@
 # Chirp
 
-A simple library to use MongoDB as cache for Twitter.
+A simple PHP library to use MongoDB as cache for Twitter.
 
 ## Install
 
@@ -12,8 +12,6 @@ composer require batopa/chirp
 ## Basic use
 
 ```php
-<?php
-
 use Bato\Chirp\Chirp;
 
 // set your Twitter auth conf
@@ -66,8 +64,6 @@ replacing `/` with `-` character, so:
 You can just save some of tweets returned
 
 ```php
-<?php
-
 // Save only tweets under some conditions
 $chirp->write('statuses/user_timeline', [
     // contains parameter used for build the query string
@@ -87,8 +83,6 @@ You can take advantage of MongoDB to filter,
 sort and manipulate the tweets read, for example
 
 ```php
-<?php
-
 // Save only tweets under some conditions
 $chirp->read('statuses/user_timeline', [
     // filter
@@ -114,8 +108,6 @@ $chirp->read('statuses/user_timeline', [
 If you need you can always get the db or a collection and use directly it to your purposes
 
 ```php
-<?php
-
 // get db
 $db = $chirp->getDb();
 
