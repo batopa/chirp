@@ -14,7 +14,7 @@ composer require batopa/chirp
 ```php
 <?php
 
-use Bato\Chirp\Chirp
+use Bato\Chirp\Chirp;
 
 // set your Twitter auth conf
 $twitterAuth = [
@@ -33,12 +33,12 @@ $mongoAuth = [
 ];
 
 // instantiate Chirp with Twitter auth and MongoDB conf
-$chirp = new Chirp();
+$chirp = new Chirp($twitterAuth, $mongoAuth);
 
-// Perform GET statuses/user_timeline of @batopa user on Twitter
+// Perform Twitter API request GET statuses/user_timeline of @batopa user
 // and save tweets in MongoDB
 $result = $chirp->write('statuses/user_timeline', [
-    // contains parameter used for build the query string
+    // contains parameter used to build the query string
     'query' => [
         'screen_name' => 'batopa'
     ]
@@ -66,6 +66,8 @@ replacing `/` with `-` character, so:
 You can just save some of tweets returned
 
 ```php
+<?php
+
 // Save only tweets under some conditions
 $chirp->write('statuses/user_timeline', [
     // contains parameter used for build the query string
@@ -79,12 +81,14 @@ $chirp->write('statuses/user_timeline', [
 ]);
 ```
 
-# Reading
+### Reading
 
 You can take advantage of MongoDB to filter,
-sort and manipulate the tweets read
+sort and manipulate the tweets read, for example
 
 ```php
+<?php
+
 // Save only tweets under some conditions
 $chirp->read('statuses/user_timeline', [
     // filter
@@ -106,4 +110,15 @@ $chirp->read('statuses/user_timeline', [
         ]
     ]
 ]);
+```
+If you need you can always get the db or a collection and use directly it to your purposes
+
+```php
+<?php
+
+// get db
+$db = $chirp->getDb();
+
+// get collection
+$collection = $chirp->getCollection('statuses/user_timeline');
 ```
