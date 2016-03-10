@@ -10,7 +10,7 @@
 namespace Bato\Chirp;
 
 use MongoDB\Client;
-use TwitterAPIExchange;
+use Abraham\TwitterOAuth\TwitterOAuth;
 
 /**
  * Chirp Class
@@ -29,16 +29,9 @@ class Chirp
     private $db = null;
 
     /**
-     * Twitter API base url
+     * The instance of TwitterOAuth
      *
-     * @var string
-     */
-    private $apiBaseUrl = 'https://api.twitter.com/1.1/';
-
-    /**
-     * The instance of TwitterAPIExchange
-     *
-     * @var TwitterAPIExchange
+     * @var \Abraham\TwitterOAuth\TwitterOAuth
      */
     private $twitter;
 
@@ -47,10 +40,10 @@ class Chirp
      * Initialize TwitterAPIExchange and MongoDB connection
      *
      * $twitterAuthConf must contain
-     * - oauth_access_token
-     * - oauth_access_token_secret
      * - consumer_key
      * - consumer_secret
+     * - oauth_access_token
+     * - oauth_access_token_secret
      *
      * $mongoConf must contain
      *  - db: the name of mongo database to use
@@ -62,33 +55,45 @@ class Chirp
      *
      * used for MongoDB connection
      *
-     * @see \TwitterAPIExchange for $twitterAuthConf
      * @see \MongoDB\Client for $mongoConf
      * @param array $twitterAuthConf
      * @param array $mongoConf
      */
     public function __construct(array $twitterAuthConf, array $mongoConf = array())
     {
-        $this->twitter = new TwitterAPIExchange($twitterAuthConf);
+        $twitterAuthConf += [
+            'consumer_key' => null,
+            'consumer_secret' => null,
+            'oauth_access_token' => null,
+            'oauth_access_token_secret' => null
+        ];
         $mongoConf += [
             'uri' => 'mongodb://localhost:27017',
             'uriOptions' => [],
             'driverOptions' => [],
             'db' => ''
         ];
+
+        $this->twitter = new TwitterOAuth(
+            $twitterAuthConf['consumer_key'],
+            $twitterAuthConf['consumer_secret'],
+            $twitterAuthConf['oauth_access_token'],
+            $twitterAuthConf['oauth_access_token_secret']
+        );
+        $this->twitter->setDecodeJsonAsArray(true);
+
         $client = new Client($mongoConf['uri'], $mongoConf['uriOptions'], $mongoConf['driverOptions']);
         $this->db = $client->selectDatabase($mongoConf['db']);
     }
 
     /**
-     * Return a complete Twitter resource url starting from an endpoint
+     * Return TwitterOAuth instance
      *
-     * @param string $endpoint
-     * @return string
+     * @return \Abraham\TwitterOAuth\TwitterOAuth
      */
-    public function resourceUrl($endpoint)
+    public function getTwitterConnection()
     {
-        return $this->apiBaseUrl . $endpoint . '.json';
+        return $this->twitter;
     }
 
     /**
@@ -125,14 +130,10 @@ class Chirp
      * @param string $requestMethod the http request method
      * @return array
      */
-    public function twitterRequest($endpoint, $query = [], $requestMethod = 'get')
+    public function request($endpoint, $query = [], $requestMethod = 'get')
     {
-        $url = $this->resourceUrl($endpoint);
-        $queryString = !empty($query) ? '?' . http_build_query($query) : '';
         $response = $this->twitter
-            ->setGetfield($queryString)
-            ->buildOauth($url, $requestMethod)
-            ->performRequest();
+            ->{$requestMethod}($endpoint, $query);
 
         return $response;
     }
@@ -185,15 +186,41 @@ class Chirp
         $options['query'] = array_filter($options['query']);
 
         // use the API
-        $result = $this->twitterRequest($endpoint, $options['query']);
-        $result = json_decode($result, true);
-
-        if (empty($result)) {
+        $response = $this->request($endpoint, $options['query']);
+        if (empty($response)) {
             return ['saved' => [], 'read'=> []];
         }
 
-        $tweets = [];
-        foreach ($result as $key => $tweet) {
+        if (array_key_exists('errors', $response)) {
+            return $response;
+        }
+
+        $collection = $this->getCollection($endpoint);
+        $tweets = $this->filterToSave($response, $collection, $options);
+        if (!empty($tweets)) {
+            $collection->insertMany($tweets);
+        }
+
+        return [
+            'saved' => $tweets,
+            'read'=> $response
+        ];
+    }
+
+    /**
+     * Given an array of tweets and a collection
+     * return the tweets that missing from the collection
+     *
+     * @see self::write() for $options
+     * @param array $tweets
+     * @param \MongoDB\Collection $collection
+     * @param array $options
+     * @return array
+     */
+    private function filterToSave(array $tweets, \MongoDB\Collection $collection, array $options)
+    {
+        $toSave = [];
+        foreach ($tweets as $key => $tweet) {
             if (!isset($tweet['text']) || !isset($tweet['id_str'])) {
                 continue;
             }
@@ -204,18 +231,11 @@ class Chirp
                 continue;
             }
 
-            $tweets[$key] = $tweet;
-
-            $collection = $this->getCollection($endpoint);
-            $tweetInMongo = $collection->findOne(['id_str' => $tweet['id_str']]);
-            if (empty($tweetInMongo)) {
-                $result = $collection->insertOne($tweet);
+            $countTweets = $collection->count(['id_str' => $tweet['id_str']]);
+            if ($countTweets === 0) {
+                $toSave[] = $tweet;
             }
         }
-
-        return [
-            'saved' => $tweets,
-            'read'=> $result
-        ];
+        return $toSave;
     }
 }

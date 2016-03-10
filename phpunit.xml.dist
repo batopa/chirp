@@ -6,4 +6,10 @@
             <directory>tests</directory>
         </testsuite>
     </testsuites>
+    <php>
+        <const name="OAUTH_ACCESS_TOKEN" value=""/>
+        <const name="OAUTH_ACCESS_TOKEN_SECRET" value=""/>
+        <const name="CONSUMER_KEY" value=""/>
+        <const name="CONSUMER_SECRET" value=""/>
+    </php>
 </phpunit>

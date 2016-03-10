@@ -114,3 +114,12 @@ $db = $chirp->getDb();
 // get collection
 $collection = $chirp->getCollection('statuses/user_timeline');
 ```
+
+You can also send request to Twitter API using `Chirp::response()` or
+getting the instance of [TwitterOAuth](https://twitteroauth.com)
+
+```php
+$connection = $chirp->getTwitterConnection();
+```
+
+and use directly it.
