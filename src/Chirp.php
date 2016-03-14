@@ -132,6 +132,11 @@ class Chirp
      */
     public function request($endpoint, $query = [], $requestMethod = 'get')
     {
+        $validMethods = ['get', 'post', 'put', 'delete'];
+        $requestMethod = strtolower($requestMethod);
+        if (!in_array($requestMethod, $validMethods)) {
+            throw new \UnexpectedValueException('Unsupported http request method ' . $requestMethod);
+        }
         $response = $this->twitter
             ->{$requestMethod}($endpoint, $query);
 

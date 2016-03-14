@@ -141,4 +141,11 @@ class ChirpTest extends \PHPUnit_Framework_TestCase
         $this->assertInstanceOf('\MongoDB\Model\BSONDocument', $result->user);
         $this->assertObjectNotHasAttribute('id_str', $result);
     }
+
+    public function testBadRequest()
+    {
+        $chirp = new Chirp($this->twitterAuth, ['db' => $this->dbName]);
+        $this->expectException(\UnexpectedValueException::class);
+        $chirp->request('statuses/user_timeline', [], 'pull');
+    }
 }
