@@ -12,6 +12,8 @@ composer require batopa/chirp
 ## Basic use
 
 ```php
+require 'vendor/autoload.php';
+
 use Bato\Chirp\Chirp;
 
 // set your Twitter auth conf
