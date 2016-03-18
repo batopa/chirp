@@ -9,6 +9,7 @@
  */
 namespace Bato\Chirp;
 
+use Bato\Chirp\Utility\Parser;
 use MongoDB\Client;
 use Abraham\TwitterOAuth\TwitterOAuth;
 
@@ -37,7 +38,8 @@ class Chirp
 
     /**
      * Constructor
-     * Initialize TwitterAPIExchange and MongoDB connection
+     *
+     * Passing $twitterAuthConf and/or $mongoConf  it tries to setup them
      *
      * $twitterAuthConf must contain
      * - consumer_key
@@ -57,9 +59,31 @@ class Chirp
      *
      * @see \MongoDB\Client for $mongoConf
      * @param array $twitterAuthConf
-     * @param array $mongoConf
+     * @param array $mongoDbConf
      */
-    public function __construct(array $twitterAuthConf, array $mongoConf = array())
+    public function __construct(array $twitterAuthConf = array(), array $mongoDbConf = array())
+    {
+        if (!empty($twitterAuthConf)) {
+            $this->setupTwitter($twitterAuthConf);
+        }
+        if (!empty($mongoDbConf)) {
+            $this->setupMongoDb($mongoDbConf);
+        }
+    }
+
+    /**
+     * Setup TwitterOAuth
+     *
+     * $twitterAuthConf must contain
+     * - consumer_key
+     * - consumer_secret
+     * - oauth_access_token
+     * - oauth_access_token_secret
+     *
+     * @param array $twitterAuthConf
+     * @return $this
+     */
+    public function setupTwitter(array $twitterAuthConf)
     {
         $twitterAuthConf += [
             'consumer_key' => null,
@@ -67,13 +91,6 @@ class Chirp
             'oauth_access_token' => null,
             'oauth_access_token_secret' => null
         ];
-        $mongoConf += [
-            'uri' => 'mongodb://localhost:27017',
-            'uriOptions' => [],
-            'driverOptions' => [],
-            'db' => ''
-        ];
-
         $this->twitter = new TwitterOAuth(
             $twitterAuthConf['consumer_key'],
             $twitterAuthConf['consumer_secret'],
@@ -81,9 +98,36 @@ class Chirp
             $twitterAuthConf['oauth_access_token_secret']
         );
         $this->twitter->setDecodeJsonAsArray(true);
+        return $this;
+    }
 
-        $client = new Client($mongoConf['uri'], $mongoConf['uriOptions'], $mongoConf['driverOptions']);
-        $this->db = $client->selectDatabase($mongoConf['db']);
+    /**
+     * Setup MongoDB connection
+     *
+     * $mongoDbConf must contain
+     *  - db: the name of mongo database to use
+     *
+     *  and can contain
+     * - uri
+     * - uriOptions
+     * - driverOptions
+     *
+     * @see \MongoDB\Client for $mongoConf
+     * @param array $twitterAuthConf
+     * @param array $mongoDbConf
+     * @return $this
+     */
+    public function setupMongoDb(array $mongoDbConf)
+    {
+        $mongoDbConf += [
+            'uri' => 'mongodb://localhost:27017',
+            'uriOptions' => [],
+            'driverOptions' => [],
+            'db' => ''
+        ];
+        $client = new Client($mongoDbConf['uri'], $mongoDbConf['uriOptions'], $mongoDbConf['driverOptions']);
+        $this->db = $client->selectDatabase($mongoDbConf['db']);
+        return $this;
     }
 
     /**
@@ -91,8 +135,13 @@ class Chirp
      *
      * @return \Abraham\TwitterOAuth\TwitterOAuth
      */
-    public function getTwitterConnection()
+    public function getTwitter()
     {
+        if (empty($this->twitter)) {
+            throw new \RuntimeException(
+                'You have to setup twitter before use it. See \Bato\Chirp\Chirp::setupTwitter()'
+            );
+        }
         return $this->twitter;
     }
 
@@ -103,6 +152,11 @@ class Chirp
      */
     public function getDb()
     {
+        if (empty($this->db)) {
+            throw new \RuntimeException(
+                'You have to setup MongoDB connection before use it. See \Bato\Chirp\Chirp::setupMongoDb()'
+            );
+        }
         return $this->db;
     }
 
@@ -117,9 +171,9 @@ class Chirp
      */
     public function getCollection($endpoint)
     {
-        $name = trim($endpoint, '/');
-        $name = preg_replace('/\/+/', '-', $name);
-        return $this->db->selectCollection($name);
+        $name = Parser::normalize($endpoint);
+        return $this->getDb()
+            ->selectCollection($name);
     }
 
     /**
@@ -137,7 +191,7 @@ class Chirp
         if (!in_array($requestMethod, $validMethods)) {
             throw new \UnexpectedValueException('Unsupported http request method ' . $requestMethod);
         }
-        $response = $this->twitter
+        $response = $this->getTwitter()
             ->{$requestMethod}($endpoint, $query);
 
         return $response;
@@ -169,12 +223,21 @@ class Chirp
 
     /**
      * Perform twitter request and save results in db.
-     * Only requests returing tweets are persisted.
      *
      * Possible $options are:
      * - query: an array used for compose query string
-     * - grep: a string to search in 'text' field. Result containing that string will be saved
-     * - require: only results with that field will be saved
+     * - grep: an array used for look up. Results matching the grep criteria will be saved.
+     *         Example
+     *         ```
+     *         [
+     *             'key_to_look_up' => ['match1', 'match2'],
+     *             'other_key_to_look_up' => ['match3']
+     *         ]
+     *         ```
+     * - require: an array of string of keys required.
+     *            Only results with those fields will be saved.
+     *            Use point separtated string to go deep in results, for example
+     *            `'key1.key2.key3'` checks against`[ 'key1' => ['key2' => ['key3' => 'some_value']]] `
      *
      * @param string $endpoint the twitter endpoint for example 'statuses/user_timeline'
      * @param array $options
@@ -182,15 +245,7 @@ class Chirp
      */
     public function write($endpoint, array $options = [])
     {
-        $options += [
-            'query' => [],
-            'grep' => '',
-            'require' => ''
-        ];
-
-        $options['query'] = array_filter($options['query']);
-
-        // use the API
+        $options = $this->prepareWriteOptions($options);
         $response = $this->request($endpoint, $options['query']);
         if (empty($response)) {
             return ['saved' => [], 'read'=> []];
@@ -213,6 +268,29 @@ class Chirp
     }
 
     /**
+     * Check and return $options to be used in self::write()
+     *
+     * @param string $endpoint the twitter endpoint for example 'statuses/user_timeline'
+     * @param array $options
+     * @return array
+     */
+    private function prepareWriteOptions($options)
+    {
+        $options += [
+            'query' => [],
+            'grep' => [],
+            'require' => []
+        ];
+        foreach (['query', 'grep', 'require'] as $test) {
+            if (!is_array($options[$test])) {
+                throw new \UnexpectedValueException('"' . $test . '" option must be an array');
+            }
+        }
+        $options['query'] = array_filter($options['query']);
+        return $options;
+    }
+
+    /**
      * Given an array of tweets and a collection
      * return the tweets that missing from the collection
      *
@@ -226,13 +304,7 @@ class Chirp
     {
         $toSave = [];
         foreach ($tweets as $key => $tweet) {
-            if (!isset($tweet['text']) || !isset($tweet['id_str'])) {
-                continue;
-            }
-            if ($options['require'] && empty($tweet[$options['require']])) {
-                continue;
-            }
-            if ($options['grep'] && stristr($tweet['text'], $options['grep']) === false) {
+            if (!Parser::match($tweet, $options)) {
                 continue;
             }
 
