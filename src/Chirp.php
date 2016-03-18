@@ -113,7 +113,6 @@ class Chirp
      * - driverOptions
      *
      * @see \MongoDB\Client for $mongoConf
-     * @param array $twitterAuthConf
      * @param array $mongoDbConf
      * @return $this
      */
@@ -270,7 +269,6 @@ class Chirp
     /**
      * Check and return $options to be used in self::write()
      *
-     * @param string $endpoint the twitter endpoint for example 'statuses/user_timeline'
      * @param array $options
      * @return array
      */

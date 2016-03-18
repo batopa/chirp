@@ -96,7 +96,7 @@ class Parser
      * ```
      * @param array $data an array to check
      * @param string $key the key name
-     * @param string $matchPattern a regexp used to match value
+     * @param string|null $matchPattern a regexp used to match value
      * @return bool
      */
     public static function hasKey(array $data, $key, $matchPattern = null)
