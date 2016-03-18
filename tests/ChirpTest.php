@@ -16,30 +16,38 @@ class ChirpTest extends \PHPUnit_Framework_TestCase
 
     private $dbName = 'test_chirp';
 
+    /**
+     * @expectedException \MongoDB\Driver\Exception\InvalidArgumentException
+     */
     public function testMongoInvalidUri()
     {
-        $this->expectException(\MongoDB\Driver\Exception\InvalidArgumentException::class);
         $chirp = new Chirp($this->twitterAuth, ['uri' => 'xxx']);
     }
 
+    /**
+     * @expectedException \MongoDB\Driver\Exception\InvalidArgumentException
+     * expectedExceptionMessage $databaseName is invalid:
+     */
     public function testMongoMissingDatabase()
     {
-        $this->expectException(\MongoDB\Driver\Exception\InvalidArgumentException::class);
-        $this->expectExceptionMessage('$databaseName is invalid: ');
         $chirp = new Chirp();
         $chirp->setupMongoDb([]);
     }
 
+    /**
+     * @expectedException \RuntimeException
+     */
     public function testMongoRuntimeError()
     {
-        $this->expectException(\RuntimeException::class);
         $chirp = new Chirp();
         $chirp->getDb();
     }
 
+    /**
+     * @expectedException \RuntimeException
+     */
     public function testTwitterRuntimeError()
     {
-        $this->expectException(\RuntimeException::class);
         $chirp = new Chirp();
         $chirp->getTwitter();
     }
@@ -158,17 +166,21 @@ class ChirpTest extends \PHPUnit_Framework_TestCase
         $this->assertObjectNotHasAttribute('id_str', $result);
     }
 
+    /**
+     * @expectedException \UnexpectedValueException
+     */
     public function testBadRequest()
     {
         $chirp = new Chirp($this->twitterAuth, ['db' => $this->dbName]);
-        $this->expectException(\UnexpectedValueException::class);
         $chirp->request('statuses/user_timeline', [], 'pull');
     }
 
+    /**
+     * @expectedException \UnexpectedValueException
+     */
     public function testBadWriteParams()
     {
         $chirp = new Chirp();
-        $this->expectException(\UnexpectedValueException::class);
         $chirp->write('statuses/user_timeline', ['query' => 'foo']);
     }
 }
