@@ -22,10 +22,9 @@ matrix:
   allow_failures:
     - php: hhvm
 
-install: composer install --no-interaction
-
 before_script:
   - echo "extension = mongodb.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+  - composer install --no-interaction
 
 script:
   - vendor/bin/phpunit --coverage-clover=clover.xml
