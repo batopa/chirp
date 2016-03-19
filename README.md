@@ -1,5 +1,6 @@
 # Chirp
 
+[![Build Status](https://travis-ci.org/batopa/chirp.svg?branch=master)](https://travis-ci.org/batopa/chirp)
 [![Packagist](https://img.shields.io/packagist/l/doctrine/orm.svg)](LICENSE)
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/batopa/chirp/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/batopa/chirp/?branch=master)
 [![Packagist](https://img.shields.io/packagist/v/batopa/chirp.svg)](https://packagist.org/packages/batopa/chirp)
