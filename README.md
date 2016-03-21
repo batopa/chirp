@@ -6,7 +6,7 @@
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/batopa/chirp/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/batopa/chirp/?branch=master)
 [![Latest Stable Version](https://img.shields.io/packagist/v/batopa/chirp.svg)](https://packagist.org/packages/batopa/chirp)
 
-A simple PHP library to use MongoDB as cache for Twitter.
+A PHP library to use MongoDB as cache engine for Twitter.
 
 ## Requirements
 
