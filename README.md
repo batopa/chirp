@@ -4,6 +4,7 @@
 [![Build Status](https://travis-ci.org/batopa/chirp.svg?branch=master)](https://travis-ci.org/batopa/chirp)
 [![codecov.io](https://codecov.io/github/batopa/chirp/coverage.svg?branch=master)](https://codecov.io/github/batopa/chirp?branch=master)
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/batopa/chirp/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/batopa/chirp/?branch=master)
+[![Code consistency](http://squizlabs.github.io/PHP_CodeSniffer/analysis/batopa/chirp/grade.svg)](http://squizlabs.github.io/PHP_CodeSniffer/analysis/batopa/chirp)
 [![Latest Stable Version](https://img.shields.io/packagist/v/batopa/chirp.svg)](https://packagist.org/packages/batopa/chirp)
 
 A PHP library to use MongoDB as cache engine for Twitter.
