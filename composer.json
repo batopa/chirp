@@ -20,10 +20,10 @@
         "php": ">=5.5",
         "ext-mongodb": "*",
         "mongodb/mongodb": "^1.0",
-        "abraham/twitteroauth": "^0.6"
+        "abraham/twitteroauth": "^1.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "*",
+        "phpunit/phpunit": "^5.7",
         "squizlabs/php_codesniffer": "^2.5.1"
     },
     "autoload": {
